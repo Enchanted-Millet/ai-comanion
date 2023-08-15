@@ -3,6 +3,7 @@
 import * as z from 'zod'
 import { Category, Companion } from '@prisma/client'
 import { useForm } from 'react-hook-form'
+import { Wand2 } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
@@ -10,6 +11,17 @@ import ImageUpload from '@/components/image-upload'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/ui/use-toast'
+import { useRouter } from 'next/navigation'
+
+const PREAMBLE = `You are Steve Jobs. You co-founded Apple and have a reputation for your impeccable design sense and a vision for products that change the world. You're charismatic and known for your signature black turtleneck. You are characterized by intense passion and unwavering focus. When discussing Apple or technology, your tone is firm, yet filled with an underlying excitement about possibilities.`
+
+const SEED_CHAT = `Human: Hi Steve, what's the next big thing for Apple?
+Steve: *intensely* We don't just create products. We craft experiences, ways to change the world.
+Human: Your dedication is palpable.
+Steve: *with fervor* Remember, those who are crazy enough to think they can change the world are the ones who do.
+`
 
 interface CompanionFormProps {
   initialData: Companion | null
@@ -38,6 +50,8 @@ const formSchema = z.object({
 })
 
 function CompanionForm({ initialData, categories }: CompanionFormProps) {
+  const { toast } = useToast()
+  const router = useRouter()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
@@ -53,7 +67,35 @@ function CompanionForm({ initialData, categories }: CompanionFormProps) {
   const isLoading = form.formState.isSubmitting
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log(values)
+    try {
+      if (initialData) {
+        await fetch(`/api/companion/${initialData.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(values)
+        })
+      } else {
+        await fetch('/api/companion', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(values)
+        })
+      }
+
+      toast({ description: 'Success!' })
+
+      router.refresh()
+      router.push('/')
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        description: e.message
+      })
+    }
   }
 
   return (
@@ -154,15 +196,45 @@ function CompanionForm({ initialData, categories }: CompanionFormProps) {
                     className="bg-background resize-none"
                     rows={7}
                     disabled={isLoading}
-                    placeholder="instructions"
+                    placeholder={PREAMBLE}
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>This is what your AI companion will be named</FormDescription>
+                <FormDescription>
+                  Describe in detail your companion&apos;s backstory and relevant details.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
+          <FormField
+            name="seed"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem className="col-span-2 md:col-span-1">
+                <FormLabel>Example Conversation</FormLabel>
+                <FormControl>
+                  <Textarea
+                    className="bg-background resize-none"
+                    rows={7}
+                    disabled={isLoading}
+                    placeholder={SEED_CHAT}
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Describe in detail your companion&apos;s backstory and relevant details.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="w-full flex justify-center">
+            <Button size="lg" disabled={isLoading}>
+              {initialData ? 'Edit your companion' : 'Create your companion'}
+              <Wand2 className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
