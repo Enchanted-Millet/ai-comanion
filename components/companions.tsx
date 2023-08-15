@@ -18,7 +18,7 @@ export const Companions = ({ data }: CompanionsProps) => {
         <div className="relative w-80 h-60">
           <Image fill className="grayscale" src="/empty.png" alt="empty" />
         </div>
-        n<p className="text-sm text-muted-foreground">No companions found.</p>
+        <p className="text-sm text-muted-foreground">No companions found.</p>
       </div>
     )
   }
